@@ -2,8 +2,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
 import { createFilter, safeRealpathSync } from './utils'
-import type { ResolvedConfig } from './config'
-import type { Plugin } from './plugin'
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 let pnp: typeof import('pnpapi') | undefined
@@ -41,7 +39,6 @@ export function invalidatePackageData(
   packageCache: PackageCache,
   pkgPath: string,
 ): void {
-  packageCache.delete(pkgPath)
   const pkgDir = path.dirname(pkgPath)
   packageCache.forEach((pkg, cacheKey) => {
     if (pkg.dir === pkgDir) {
@@ -215,39 +212,6 @@ export function loadPackageData(pkgPath: string): PackageData {
   }
 
   return pkg
-}
-
-export function watchPackageDataPlugin(config: ResolvedConfig): Plugin {
-  const watchQueue = new Set<string>()
-  let watchFile = (id: string) => {
-    watchQueue.add(id)
-  }
-
-  const { packageCache } = config
-  const setPackageData = packageCache.set.bind(packageCache)
-  packageCache.set = (id, pkg) => {
-    if (id.endsWith('.json')) {
-      watchFile(id)
-    }
-    return setPackageData(id, pkg)
-  }
-
-  return {
-    name: 'vite:watch-package-data',
-    buildStart() {
-      watchFile = this.addWatchFile
-      watchQueue.forEach(watchFile)
-      watchQueue.clear()
-    },
-    buildEnd() {
-      watchFile = (id) => watchQueue.add(id)
-    },
-    watchChange(id) {
-      if (id.endsWith('/package.json')) {
-        invalidatePackageData(packageCache, id)
-      }
-    },
-  }
 }
 
 /**

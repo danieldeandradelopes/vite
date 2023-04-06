@@ -526,15 +526,6 @@ export async function _createServer(
     }
   }
 
-  const { packageCache } = config
-  const setPackageData = packageCache.set.bind(packageCache)
-  packageCache.set = (id, pkg) => {
-    if (id.endsWith('.json')) {
-      watcher.add(id)
-    }
-    return setPackageData(id, pkg)
-  }
-
   const onHMRUpdate = async (file: string, configOnly: boolean) => {
     if (serverConfig.hmr !== false) {
       try {
@@ -555,10 +546,10 @@ export async function _createServer(
   }
 
   watcher.on('change', async (file) => {
-    file = normalizePath(file)
-    if (file.endsWith('/package.json')) {
-      return invalidatePackageData(packageCache, file)
+    if (file.endsWith('package.json')) {
+      invalidatePackageData(config.packageCache, file)
     }
+
     // invalidate module graph cache on file change
     moduleGraph.onFileChange(file)
 
